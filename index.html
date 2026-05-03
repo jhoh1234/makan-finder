@@ -464,7 +464,7 @@
           <p style="font-size:12px;color:var(--text-dim);">Japan only — skip for other countries</p>
         </div>
         <label class="toggle">
-          <input type="checkbox" id="tabelog" checked />
+          <input type="checkbox" id="tabelog" />
           <span class="slider"></span>
         </label>
       </div>
@@ -552,11 +552,35 @@
     return prompt;
   }
 
+  function isMobile() {
+    return /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
+  }
+
   function findRestaurants() {
     const prompt = buildPrompt();
     if (!prompt) { showToast('Please enter a destination first.'); return; }
-    const url = 'https://claude.ai/new?q=' + encodeURIComponent(prompt);
-    window.open(url, '_blank');
+
+    if (isMobile()) {
+      navigator.clipboard.writeText(prompt).then(() => {
+        showToast('✓ Prompt copied — paste into Claude app!');
+        updateBtn(true);
+        setTimeout(() => updateBtn(false), 3000);
+      }).catch(() => {
+        // fallback if clipboard fails
+        const url = 'https://claude.ai/new?q=' + encodeURIComponent(prompt);
+        window.open(url, '_blank');
+      });
+    } else {
+      const url = 'https://claude.ai/new?q=' + encodeURIComponent(prompt);
+      window.open(url, '_blank');
+    }
+  }
+
+  function updateBtn(copied) {
+    const btn = document.querySelector('.find-btn');
+    btn.innerHTML = copied
+      ? '✓ Copied! Open Claude and paste <span class="arrow"></span>'
+      : 'Find restaurants <span class="arrow">↗</span>';
   }
 
   const d = new Date();
