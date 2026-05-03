@@ -339,6 +339,13 @@
 
   .powered a { color: var(--accent); text-decoration: none; }
 
+  .input-gps-wrap { position: relative; display: flex; align-items: center; }
+  .input-gps-wrap input { padding-right: 42px; }
+  .gps-btn { position: absolute; right: 10px; background: none; border: none; font-size: 16px; cursor: pointer; padding: 0; line-height: 1; opacity: 0.6; transition: opacity 0.2s; }
+  .gps-btn:hover { opacity: 1; }
+  .gps-btn.loading { animation: pulse 0.8s ease-in-out infinite; }
+  @keyframes pulse { 0%,100% { opacity: 0.3; } 50% { opacity: 1; } }
+
   [data-mode="local"] .route-only { display: none; }
   [data-mode="route"] .local-only { display: none; }
 
@@ -357,7 +364,7 @@
 
 <div class="container">
   <header>
-    <div class="logo"><span class="logo-dot"></span> Makan Finder (prompt generator)</div>
+    <div class="logo"><span class="logo-dot"></span> Makan Finder</div>
     <h1>Find your next<br><span>pit stop.</span></h1>
     <p class="subtitle">Restaurant recommendations along your route — or near your destination.</p>
   </header>
@@ -378,17 +385,26 @@
       <div class="field-row route-only">
         <div class="field">
           <label>From</label>
-          <input type="text" id="from" placeholder="e.g. Farm Tomita" />
+          <div class="input-gps-wrap">
+            <input type="text" id="from" placeholder="e.g. Farm Tomita" />
+            <button class="gps-btn" onclick="getLocation('from')" title="Use current location">📍</button>
+          </div>
         </div>
         <div class="field">
           <label>To</label>
-          <input type="text" id="to" placeholder="e.g. Sapporo" />
+          <div class="input-gps-wrap">
+            <input type="text" id="to" placeholder="e.g. Sapporo" />
+            <button class="gps-btn" onclick="getLocation('to')" title="Use current location">📍</button>
+          </div>
         </div>
       </div>
       <div class="field-row single local-only">
         <div class="field">
           <label>Destination</label>
-          <input type="text" id="to-local" placeholder="e.g. Hotel Munin Furano" />
+          <div class="input-gps-wrap">
+            <input type="text" id="to-local" placeholder="e.g. Hotel Munin Furano" />
+            <button class="gps-btn" onclick="getLocation('to-local')" title="Use current location">📍</button>
+          </div>
         </div>
       </div>
       <div class="field-row">
@@ -550,6 +566,31 @@
 
     if (notes) prompt += ` Additional notes: ${notes}.`;
     return prompt;
+  }
+
+  async function getLocation(fieldId) {
+    if (!navigator.geolocation) { showToast('Geolocation not supported on this device.'); return; }
+    const btn = document.querySelector(`#${fieldId}`).parentElement.querySelector('.gps-btn');
+    btn.classList.add('loading');
+    navigator.geolocation.getCurrentPosition(async (pos) => {
+      try {
+        const { latitude: lat, longitude: lon } = pos.coords;
+        const res = await fetch(`https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lon}&format=json`);
+        const data = await res.json();
+        const addr = data.address;
+        const place = addr.city || addr.town || addr.village || addr.suburb || addr.county || 'Current location';
+        const region = addr.state || addr.country || '';
+        document.getElementById(fieldId).value = region ? `${place}, ${region}` : place;
+        showToast(`📍 Location set to ${place}`);
+      } catch {
+        showToast('Could not determine location name. Try typing it.');
+      } finally {
+        btn.classList.remove('loading');
+      }
+    }, () => {
+      showToast('Location access denied. Please allow in browser settings.');
+      btn.classList.remove('loading');
+    }, { enableHighAccuracy: true, timeout: 8000 });
   }
 
   function isMobile() {
