@@ -1,0 +1,566 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Makan Finder</title>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700;800&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;1,9..40,300&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg: #0e0e0e;
+    --surface: #181818;
+    --surface2: #222222;
+    --border: rgba(255,255,255,0.08);
+    --border-hover: rgba(255,255,255,0.18);
+    --accent: #FF5C35;
+    --accent2: #FFB347;
+    --text: #f0ede8;
+    --text-muted: rgba(240,237,232,0.45);
+    --text-dim: rgba(240,237,232,0.25);
+    --radius: 14px;
+    --radius-sm: 8px;
+    --font-display: 'Syne', sans-serif;
+    --font-body: 'DM Sans', sans-serif;
+  }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--font-body);
+    font-size: 15px;
+    line-height: 1.6;
+    min-height: 100vh;
+    padding: 0;
+  }
+
+  .bg-grid {
+    position: fixed;
+    inset: 0;
+    background-image:
+      linear-gradient(rgba(255,92,53,0.03) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(255,92,53,0.03) 1px, transparent 1px);
+    background-size: 48px 48px;
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  .bg-glow {
+    position: fixed;
+    width: 600px;
+    height: 600px;
+    border-radius: 50%;
+    background: radial-gradient(circle, rgba(255,92,53,0.08) 0%, transparent 70%);
+    top: -200px;
+    right: -200px;
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  .container {
+    position: relative;
+    z-index: 1;
+    max-width: 680px;
+    margin: 0 auto;
+    padding: 48px 24px 80px;
+  }
+
+  header {
+    margin-bottom: 48px;
+  }
+
+  .logo {
+    font-family: var(--font-display);
+    font-size: 13px;
+    font-weight: 700;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    color: var(--accent);
+    margin-bottom: 20px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .logo-dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: var(--accent);
+    display: inline-block;
+  }
+
+  h1 {
+    font-family: var(--font-display);
+    font-size: clamp(36px, 7vw, 56px);
+    font-weight: 800;
+    line-height: 1.0;
+    letter-spacing: -0.02em;
+    color: var(--text);
+    margin-bottom: 12px;
+  }
+
+  h1 span {
+    color: var(--accent);
+  }
+
+  .subtitle {
+    font-size: 15px;
+    color: var(--text-muted);
+    font-weight: 300;
+    max-width: 420px;
+  }
+
+  .mode-toggle {
+    display: flex;
+    background: var(--surface);
+    border: 0.5px solid var(--border);
+    border-radius: var(--radius);
+    padding: 4px;
+    margin-bottom: 24px;
+    gap: 4px;
+  }
+
+  .mode-btn {
+    flex: 1;
+    padding: 10px 16px;
+    border: none;
+    border-radius: 10px;
+    background: transparent;
+    color: var(--text-muted);
+    font-family: var(--font-body);
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 7px;
+  }
+
+  .mode-btn.active {
+    background: var(--surface2);
+    color: var(--text);
+    border: 0.5px solid var(--border-hover);
+  }
+
+  .mode-icon {
+    font-size: 16px;
+  }
+
+  .card {
+    background: var(--surface);
+    border: 0.5px solid var(--border);
+    border-radius: var(--radius);
+    padding: 24px;
+    margin-bottom: 12px;
+    transition: border-color 0.2s;
+  }
+
+  .card:focus-within {
+    border-color: var(--border-hover);
+  }
+
+  .card-title {
+    font-family: var(--font-display);
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--text-dim);
+    margin-bottom: 18px;
+  }
+
+  .field-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+    margin-bottom: 16px;
+  }
+
+  .field-row.single { grid-template-columns: 1fr; }
+
+  @media (max-width: 520px) {
+    .field-row { grid-template-columns: 1fr; }
+  }
+
+  .field { display: flex; flex-direction: column; gap: 6px; }
+
+  label {
+    font-size: 12px;
+    font-weight: 500;
+    color: var(--text-muted);
+    letter-spacing: 0.03em;
+  }
+
+  label .opt {
+    font-weight: 300;
+    color: var(--text-dim);
+    margin-left: 4px;
+  }
+
+  input[type="text"],
+  input[type="date"],
+  input[type="time"],
+  select,
+  textarea {
+    background: var(--surface2);
+    border: 0.5px solid var(--border);
+    border-radius: var(--radius-sm);
+    color: var(--text);
+    font-family: var(--font-body);
+    font-size: 14px;
+    padding: 11px 14px;
+    width: 100%;
+    outline: none;
+    transition: border-color 0.2s;
+    appearance: none;
+    -webkit-appearance: none;
+  }
+
+  input[type="text"]::placeholder { color: var(--text-dim); }
+
+  input:focus, select:focus, textarea:focus {
+    border-color: rgba(255,92,53,0.4);
+  }
+
+  select {
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='rgba(240,237,232,0.3)' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 14px center;
+    padding-right: 36px;
+    cursor: pointer;
+  }
+
+  select option { background: #222; color: #f0ede8; }
+
+  .input-hint {
+    font-size: 11px;
+    color: var(--text-dim);
+    margin-top: 2px;
+  }
+
+  .tags-wrap {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  .tag {
+    padding: 7px 14px;
+    border-radius: 100px;
+    border: 0.5px solid var(--border);
+    background: var(--surface2);
+    color: var(--text-muted);
+    font-size: 13px;
+    font-weight: 400;
+    cursor: pointer;
+    transition: all 0.15s;
+    user-select: none;
+  }
+
+  .tag:hover { border-color: var(--border-hover); color: var(--text); }
+
+  .tag.active {
+    background: rgba(255,92,53,0.12);
+    border-color: rgba(255,92,53,0.5);
+    color: var(--accent);
+  }
+
+  .find-btn {
+    width: 100%;
+    padding: 18px;
+    border: none;
+    border-radius: var(--radius);
+    background: var(--accent);
+    color: #fff;
+    font-family: var(--font-display);
+    font-size: 16px;
+    font-weight: 700;
+    letter-spacing: 0.02em;
+    cursor: pointer;
+    transition: all 0.2s;
+    margin-top: 8px;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .find-btn::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(135deg, rgba(255,255,255,0.1) 0%, transparent 60%);
+    pointer-events: none;
+  }
+
+  .find-btn:hover { background: #ff6d4a; transform: translateY(-1px); }
+  .find-btn:active { transform: scale(0.99) translateY(0); }
+
+  .find-btn .arrow { margin-left: 8px; display: inline-block; transition: transform 0.2s; }
+  .find-btn:hover .arrow { transform: translateX(3px) translateY(-3px); }
+
+  .toast {
+    position: fixed;
+    bottom: 32px;
+    left: 50%;
+    transform: translateX(-50%) translateY(80px);
+    background: var(--surface2);
+    border: 0.5px solid var(--border-hover);
+    border-radius: var(--radius-sm);
+    padding: 12px 20px;
+    font-size: 14px;
+    color: var(--text);
+    opacity: 0;
+    transition: all 0.3s ease;
+    z-index: 100;
+    white-space: nowrap;
+  }
+
+  .toast.show {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
+  }
+
+  .divider {
+    height: 0.5px;
+    background: var(--border);
+    margin: 16px 0;
+  }
+
+  .powered {
+    text-align: center;
+    font-size: 12px;
+    color: var(--text-dim);
+    margin-top: 32px;
+    letter-spacing: 0.03em;
+  }
+
+  .powered a { color: var(--accent); text-decoration: none; }
+
+  [data-mode="local"] .route-only { display: none; }
+  [data-mode="route"] .local-only { display: none; }
+
+  .toggle { position: relative; display: inline-block; width: 44px; height: 24px; flex-shrink: 0; }
+  .toggle input { opacity: 0; width: 0; height: 0; }
+  .slider { position: absolute; cursor: pointer; inset: 0; background: var(--surface2); border: 0.5px solid var(--border-hover); border-radius: 100px; transition: 0.2s; }
+  .slider::before { content: ''; position: absolute; width: 18px; height: 18px; left: 3px; top: 50%; transform: translateY(-50%); background: var(--text-muted); border-radius: 50%; transition: 0.2s; }
+  .toggle input:checked + .slider { background: rgba(255,92,53,0.2); border-color: rgba(255,92,53,0.5); }
+  .toggle input:checked + .slider::before { transform: translate(20px, -50%); background: var(--accent); }
+</style>
+</head>
+<body>
+
+<div class="bg-grid"></div>
+<div class="bg-glow"></div>
+
+<div class="container">
+  <header>
+    <div class="logo"><span class="logo-dot"></span> Makan Finder</div>
+    <h1>Find your next<br><span>pit stop.</span></h1>
+    <p class="subtitle">Restaurant recommendations along your route — or near your destination.</p>
+  </header>
+
+  <div class="mode-toggle">
+    <button class="mode-btn active" id="btn-route" onclick="setMode('route')">
+      <span class="mode-icon">🚗</span> En route
+    </button>
+    <button class="mode-btn" id="btn-local" onclick="setMode('local')">
+      <span class="mode-icon">📍</span> Near destination
+    </button>
+  </div>
+
+  <div id="app" data-mode="route">
+
+    <div class="card">
+      <p class="card-title">Journey</p>
+      <div class="field-row route-only">
+        <div class="field">
+          <label>From</label>
+          <input type="text" id="from" placeholder="e.g. Farm Tomita" />
+        </div>
+        <div class="field">
+          <label>To</label>
+          <input type="text" id="to" placeholder="e.g. Sapporo" />
+        </div>
+      </div>
+      <div class="field-row single local-only">
+        <div class="field">
+          <label>Destination</label>
+          <input type="text" id="to-local" placeholder="e.g. Hotel Munin Furano" />
+        </div>
+      </div>
+      <div class="field-row">
+        <div class="field">
+          <label>Date</label>
+          <input type="date" id="date" />
+        </div>
+        <div class="field">
+          <label>Departure time</label>
+          <input type="time" id="time" value="16:00" />
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <p class="card-title">Stop preferences</p>
+      <div class="field-row route-only">
+        <div class="field">
+          <label>Stop location</label>
+          <select id="stop-pref">
+            <option value="midpoint">Midpoint en route</option>
+            <option value="early">Early stop (first 30 min)</option>
+            <option value="late">Late stop (last 30 min)</option>
+            <option value="any">Anywhere along route</option>
+          </select>
+        </div>
+        <div class="field">
+          <label>Max detour</label>
+          <select id="detour">
+            <option value="0">No detour</option>
+            <option value="10">Up to 10 min</option>
+            <option value="20" selected>Up to 20 min</option>
+            <option value="30">Up to 30 min</option>
+          </select>
+        </div>
+      </div>
+      <div class="field-row single local-only">
+        <div class="field">
+          <label>Search radius</label>
+          <select id="radius">
+            <option value="5">Within 5 min drive</option>
+            <option value="10" selected>Within 10 min drive</option>
+            <option value="15">Within 15 min drive</option>
+            <option value="30">Within 30 min drive</option>
+          </select>
+        </div>
+      </div>
+      <div class="divider"></div>
+      <p class="card-title" style="margin-bottom:14px;">Cuisine</p>
+      <div class="tags-wrap" id="cuisine-tags">
+        <span class="tag active" onclick="toggleTag(this)">Any</span>
+        <span class="tag" onclick="toggleTag(this)">Izakaya</span>
+        <span class="tag" onclick="toggleTag(this)">Ramen</span>
+        <span class="tag" onclick="toggleTag(this)">Sushi / seafood</span>
+        <span class="tag" onclick="toggleTag(this)">Yakiniku / BBQ</span>
+        <span class="tag" onclick="toggleTag(this)">Soba / udon</span>
+        <span class="tag" onclick="toggleTag(this)">Western / steak</span>
+        <span class="tag" onclick="toggleTag(this)">Genghis Khan</span>
+        <span class="tag" onclick="toggleTag(this)">Local / hawker</span>
+        <span class="tag" onclick="toggleTag(this)">Cafe</span>
+      </div>
+    </div>
+
+    <div class="card">
+      <p class="card-title">Extra notes <span style="font-weight:300;text-transform:none;letter-spacing:0">(optional)</span></p>
+      <div class="field" style="margin-bottom:14px;">
+        <input type="text" id="notes" placeholder="e.g. need parking, no smoking, hidden gems only, halal" />
+      </div>
+      <div class="divider"></div>
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-top:14px;">
+        <div>
+          <p style="font-size:14px;font-weight:500;color:var(--text);margin-bottom:2px;">Include Tabelog ratings</p>
+          <p style="font-size:12px;color:var(--text-dim);">Japan only — skip for other countries</p>
+        </div>
+        <label class="toggle">
+          <input type="checkbox" id="tabelog" checked />
+          <span class="slider"></span>
+        </label>
+      </div>
+    </div>
+
+    <button class="find-btn" onclick="findRestaurants()">
+      Find restaurants <span class="arrow">↗</span>
+    </button>
+
+    <p class="powered">Powered by <a href="https://claude.ai" target="_blank">Claude AI</a></p>
+
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+  function setMode(mode) {
+    document.getElementById('app').dataset.mode = mode;
+    document.getElementById('btn-route').classList.toggle('active', mode === 'route');
+    document.getElementById('btn-local').classList.toggle('active', mode === 'local');
+  }
+
+  function toggleTag(el) {
+    const tags = el.parentElement.querySelectorAll('.tag');
+    if (el.textContent === 'Any') {
+      tags.forEach(t => t.classList.remove('active'));
+      el.classList.add('active');
+    } else {
+      tags[0].classList.remove('active');
+      el.classList.toggle('active');
+      if (![...tags].slice(1).some(t => t.classList.contains('active'))) {
+        tags[0].classList.add('active');
+      }
+    }
+  }
+
+  function getDay(dateStr) {
+    if (!dateStr) return '';
+    const days = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
+    const d = new Date(dateStr);
+    d.setMinutes(d.getMinutes() + d.getTimezoneOffset());
+    return days[d.getDay()];
+  }
+
+  function showToast(msg) {
+    const t = document.getElementById('toast');
+    t.textContent = msg;
+    t.classList.add('show');
+    setTimeout(() => t.classList.remove('show'), 3000);
+  }
+
+  function buildPrompt() {
+    const mode = document.getElementById('app').dataset.mode;
+    const date = document.getElementById('date').value;
+    const time = document.getElementById('time').value;
+    const notes = document.getElementById('notes').value.trim();
+    const day = getDay(date);
+    const dateLabel = date ? `${day} ${date}` : 'unspecified date';
+    const activeTags = [...document.querySelectorAll('#cuisine-tags .tag.active')].map(t => t.textContent);
+    const cuisine = activeTags.includes('Any') ? 'any cuisine' : activeTags.join(', ');
+
+    let prompt = '';
+
+    if (mode === 'route') {
+      const from = document.getElementById('from').value.trim();
+      const to = document.getElementById('to').value.trim();
+      if (!to) return null;
+      const stopPref = document.getElementById('stop-pref').value;
+      const detour = document.getElementById('detour').value;
+      const stopLabel = { midpoint: 'midpoint en route', early: 'early stop in first 30 min of drive', late: 'late stop in last 30 min before destination', any: 'anywhere along route' }[stopPref];
+      const detourLabel = detour === '0' ? 'no detour from highway' : `up to ${detour} min detour`;
+      const fromLabel = from ? `from ${from} ` : '';
+      const ratings = document.getElementById('tabelog').checked ? 'Google and Tabelog ratings' : 'Google ratings';
+      prompt = `I'm driving ${fromLabel}to ${to} on ${dateLabel}, departing at ${time}. I want restaurant recommendations at a ${stopLabel} (${detourLabel}). Cuisine preference: ${cuisine}. Please recommend 2-3 restaurants that are open on that day, with their ${ratings}, opening hours, cuisine type, and why each is a good en-route stop. Flag any that require reservations and mention if parking is available.`;
+    } else {
+      const to = document.getElementById('to-local').value.trim();
+      if (!to) return null;
+      const radius = document.getElementById('radius').value;
+      const ratings = document.getElementById('tabelog').checked ? 'Google and Tabelog ratings' : 'Google ratings';
+      prompt = `I'm looking for restaurants near ${to} on ${dateLabel}, arriving around ${time}. Search within ${radius} min drive of ${to}. Cuisine preference: ${cuisine}. Please recommend 2-3 restaurants that are open on that day, with their ${ratings}, opening hours, distance from ${to}, and why each is worth visiting. Flag any that require reservations.`;
+    }
+
+    if (notes) prompt += ` Additional notes: ${notes}.`;
+    return prompt;
+  }
+
+  function findRestaurants() {
+    const prompt = buildPrompt();
+    if (!prompt) { showToast('Please enter a destination first.'); return; }
+    const url = 'https://claude.ai/new?q=' + encodeURIComponent(prompt);
+    window.open(url, '_blank');
+  }
+
+  const d = new Date();
+  document.getElementById('date').value = d.toISOString().split('T')[0];
+</script>
+</body>
+</html>
